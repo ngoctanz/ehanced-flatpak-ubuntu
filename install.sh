@@ -3,25 +3,25 @@ set -Eeuo pipefail
 
 # ============================================================
 # Ubuntu Post-Install Setup
-# Dành cho Ubuntu GNOME của Tân
+# Community post-install setup for Ubuntu GNOME
 #
-# Chức năng:
-#   - Cập nhật hệ thống
-#   - Gỡ Snap và chặn Snap tự cài lại
-#   - Cài Flatpak + Flathub
-#   - Cài GNOME Software và backend Flatpak/Firmware
-#   - Cài Firefox/Thunderbird từ Flathub nếu tồn tại
-#   - Cài Fcitx5 + Unikey và tạo autostart
-#   - Dọn cache/gói thừa an toàn
+# Features:
+#   - Update the system
+#   - Remove Snap and prevent automatic reinstallation
+#   - Install Flatpak and Flathub
+#   - Install GNOME Software with Flatpak/firmware backends
+#   - Install Firefox/Thunderbird from Flathub when available
+#   - Install Fcitx5 + Unikey and configure autostart
+#   - Safely remove unused packages and caches
 #
-# Chạy:
+# Run:
 #   chmod +x install.sh
 #   ./install.sh
 #
-# Tự động xác nhận:
+# Accept all prompts:
 #   ./install.sh --yes
 #
-# Chỉ xem các bước, không thay đổi máy:
+# Preview commands without changing the system:
 #   ./install.sh --dry-run
 # ============================================================
 
@@ -31,7 +31,7 @@ readonly LOG_FILE="$HOME/ubuntu-post-install-$(date +%Y%m%d-%H%M%S).log"
 AUTO_YES=false
 DRY_RUN=false
 
-# Có thể bật/tắt từng nhóm tại đây.
+# Enable or disable feature groups here.
 REMOVE_SNAP=true
 INSTALL_FLATPAK=true
 INSTALL_GNOME_SOFTWARE=true
@@ -40,13 +40,13 @@ INSTALL_FCITX5=true
 INSTALL_FLATPAK_APPS=true
 CLEAN_SYSTEM=true
 
-# Flatpak app IDs. App không tồn tại trên Flathub sẽ được bỏ qua.
+# Flatpak app IDs. Apps unavailable on Flathub are skipped.
 FLATPAK_APPS=(
   "org.mozilla.firefox"
   "org.mozilla.thunderbird_esr"
 )
 
-# Gói tiện ích cơ bản.
+# Basic desktop packages.
 DESKTOP_PACKAGES=(
   curl
   wget
@@ -60,7 +60,7 @@ DESKTOP_PACKAGES=(
 )
 
 # ------------------------------------------------------------
-# Giao diện
+# Output
 # ------------------------------------------------------------
 
 if [[ -t 1 ]]; then
@@ -140,7 +140,7 @@ install_available_packages() {
     if package_available "$package"; then
       available+=("$package")
     else
-      warn "Không tìm thấy gói APT: $package — bỏ qua."
+      warn "APT package not found: $package; skipping."
     fi
   done
 
@@ -150,32 +150,32 @@ install_available_packages() {
 }
 
 # ------------------------------------------------------------
-# Xử lý lỗi
+# Error handling
 # ------------------------------------------------------------
 
 on_error() {
   local exit_code=$?
   local line_no=$1
 
-  printf '\n%sScript dừng ở dòng %s, mã lỗi %s.%s\n' \
+  printf '\n%sScript stopped at line %s with exit code %s.%s\n' \
     "$C_RED" "$line_no" "$exit_code" "$C_RESET" >&2
-  printf 'Xem log: %s\n' "$LOG_FILE" >&2
+  printf 'Log: %s\n' "$LOG_FILE" >&2
   exit "$exit_code"
 }
 
 trap 'on_error "$LINENO"' ERR
 
 # ------------------------------------------------------------
-# Tham số
+# Arguments
 # ------------------------------------------------------------
 
 show_help() {
   cat <<EOF
-Cách dùng: $SCRIPT_NAME [tùy chọn]
+Usage: $SCRIPT_NAME [options]
 
-  --yes       Tự động trả lời yes
-  --dry-run   Chỉ in lệnh, không thay đổi hệ thống
-  --help      Hiện trợ giúp
+  --yes       Accept all prompts
+  --dry-run   Print commands without changing the system
+  --help      Show this help
 EOF
 }
 
@@ -192,47 +192,47 @@ while (($# > 0)); do
       exit 0
       ;;
     *)
-      die "Tham số không hợp lệ: $1"
+      die "Unknown option: $1"
       ;;
   esac
   shift
 done
 
-# Ghi cả màn hình và file log.
+# Write output to both the terminal and the log.
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 # ------------------------------------------------------------
-# Kiểm tra hệ thống
+# System checks
 # ------------------------------------------------------------
 
 preflight() {
-  section "1. Kiểm tra hệ thống"
+  section "1. System checks"
 
-  [[ "$EUID" -ne 0 ]] || die "Không chạy toàn bộ script bằng sudo. Hãy dùng ./$SCRIPT_NAME"
+  [[ "$EUID" -ne 0 ]] || die "Do not run the entire script with sudo. Use ./$SCRIPT_NAME"
 
-  [[ -r /etc/os-release ]] || die "Không đọc được /etc/os-release."
+  [[ -r /etc/os-release ]] || die "Cannot read /etc/os-release."
   # shellcheck disable=SC1091
   source /etc/os-release
 
   if [[ "${ID:-}" != "ubuntu" ]]; then
-    warn "Script được viết cho Ubuntu, hệ hiện tại là: ${PRETTY_NAME:-không rõ}."
-    confirm "Tiếp tục?" || exit 0
+    warn "This script targets Ubuntu; detected: ${PRETTY_NAME:-unknown}."
+    confirm "Continue?" || exit 0
   else
-    success "Phát hiện ${PRETTY_NAME:-Ubuntu}."
+    success "Detected ${PRETTY_NAME:-Ubuntu}."
   fi
 
-  command_exists apt-get || die "Không tìm thấy apt-get."
+  command_exists apt-get || die "apt-get was not found."
   run sudo -v
 
-  info "Log được lưu tại: $LOG_FILE"
+  info "Log: $LOG_FILE"
 }
 
 # ------------------------------------------------------------
-# Cập nhật APT
+# APT update
 # ------------------------------------------------------------
 
 update_system() {
-  section "2. Cập nhật hệ thống"
+  section "2. Update system"
 
   run sudo apt-get update
   run sudo DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y
@@ -245,19 +245,19 @@ update_system() {
 remove_snap() {
   [[ "$REMOVE_SNAP" == true ]] || return 0
 
-  section "3. Gỡ Snap và chặn cài lại"
+  section "3. Remove Snap and prevent reinstallation"
 
   if ! command_exists snap && ! dpkg-query -W -f='${Status}' snapd 2>/dev/null | grep -q 'install ok installed'; then
-    success "Snap đã được gỡ trước đó."
+    success "Snap is already removed."
   else
-    warn "Các ứng dụng Snap sẽ bị gỡ khỏi máy."
+    warn "All installed Snap applications will be removed."
 
     if command_exists snap; then
       mapfile -t snap_packages < <(snap list 2>/dev/null | awk 'NR > 1 {print $1}' | tac || true)
 
       for snap_package in "${snap_packages[@]:-}"; do
         [[ -n "$snap_package" ]] || continue
-        run sudo snap remove --purge "$snap_package" || warn "Không gỡ được Snap: $snap_package"
+        run sudo snap remove --purge "$snap_package" || warn "Could not remove Snap: $snap_package"
       done
     fi
 
@@ -269,7 +269,7 @@ remove_snap() {
   run rm -rf "$HOME/snap"
 
   if [[ "$DRY_RUN" == true ]]; then
-    info "Sẽ tạo /etc/apt/preferences.d/nosnap.pref"
+    info "Would create /etc/apt/preferences.d/nosnap.pref"
   else
     sudo tee /etc/apt/preferences.d/nosnap.pref >/dev/null <<'EOF'
 Package: snapd
@@ -278,7 +278,7 @@ Pin-Priority: -10
 EOF
   fi
 
-  success "Đã gỡ và pin snapd."
+  success "Removed and pinned snapd."
 }
 
 # ------------------------------------------------------------
@@ -288,7 +288,7 @@ EOF
 install_flatpak() {
   [[ "$INSTALL_FLATPAK" == true ]] || return 0
 
-  section "4. Cài Flatpak và Flathub"
+  section "4. Install Flatpak and Flathub"
 
   install_available_packages flatpak
 
@@ -296,7 +296,7 @@ install_flatpak() {
     flathub https://flathub.org/repo/flathub.flatpakrepo
 
   run flatpak update --appstream -y
-  success "Flatpak và Flathub đã sẵn sàng."
+  success "Flatpak and Flathub are ready."
 }
 
 # ------------------------------------------------------------
@@ -306,7 +306,7 @@ install_flatpak() {
 install_gnome_software() {
   [[ "$INSTALL_GNOME_SOFTWARE" == true ]] || return 0
 
-  section "5. Cài GNOME Software"
+  section "5. Install GNOME Software"
 
   local packages=(
     gnome-software
@@ -315,7 +315,7 @@ install_gnome_software() {
     fwupd
   )
 
-  # Một số bản Ubuntu có plugin deb riêng, một số bản tích hợp sẵn.
+  # Some Ubuntu releases provide a separate deb plugin; others bundle it.
   if package_available gnome-software-plugin-deb; then
     packages+=(gnome-software-plugin-deb)
   fi
@@ -323,17 +323,17 @@ install_gnome_software() {
   install_available_packages "${packages[@]}"
 
   run rm -rf "$HOME/.cache/gnome-software"
-  success "GNOME Software đã được cài cùng backend khả dụng."
+  success "Installed GNOME Software with the available backends."
 }
 
 # ------------------------------------------------------------
-# Công cụ desktop
+# Desktop tools
 # ------------------------------------------------------------
 
 install_desktop_tools() {
   [[ "$INSTALL_DESKTOP_TOOLS" == true ]] || return 0
 
-  section "6. Cài tiện ích desktop"
+  section "6. Install desktop tools"
 
   install_available_packages "${DESKTOP_PACKAGES[@]}"
 }
@@ -345,7 +345,7 @@ install_desktop_tools() {
 install_fcitx5() {
   [[ "$INSTALL_FCITX5" == true ]] || return 0
 
-  section "7. Cài Fcitx5 + Unikey"
+  section "7. Install Fcitx5 + Unikey"
 
   local fcitx_packages=(
     fcitx5
@@ -360,7 +360,7 @@ install_fcitx5() {
 
   install_available_packages "${fcitx_packages[@]}"
 
-  # Chỉ gỡ engine Unikey của IBus; giữ IBus core để không phá GNOME.
+  # Remove only the IBus Unikey engine; GNOME still needs the IBus core.
   if dpkg-query -W -f='${Status}' ibus-unikey 2>/dev/null | grep -q 'install ok installed'; then
     run sudo apt-get purge -y ibus-unikey
   fi
@@ -375,10 +375,10 @@ install_fcitx5() {
   if [[ -f "$desktop_file" ]]; then
     run cp "$desktop_file" "$HOME/.config/autostart/org.fcitx.Fcitx5.desktop"
   else
-    warn "Không tìm thấy launcher chuẩn; tạo launcher thủ công."
+    warn "Standard launcher not found; creating one."
 
     if [[ "$DRY_RUN" == true ]]; then
-      info "Sẽ tạo ~/.config/autostart/fcitx5.desktop"
+      info "Would create ~/.config/autostart/fcitx5.desktop"
     else
       cat > "$HOME/.config/autostart/fcitx5.desktop" <<'EOF'
 [Desktop Entry]
@@ -393,43 +393,43 @@ EOF
   fi
 
   run rm -rf "$HOME/.cache/ibus"
-  success "Fcitx5 đã được cài. Cần đăng xuất hoặc reboot để áp dụng."
+  success "Fcitx5 installed. Sign out or reboot to apply it."
 }
 
 # ------------------------------------------------------------
-# Ứng dụng Flatpak
+# Flatpak applications
 # ------------------------------------------------------------
 
 install_flatpak_apps() {
   [[ "$INSTALL_FLATPAK_APPS" == true ]] || return 0
   command_exists flatpak || {
-    warn "Không có Flatpak; bỏ qua ứng dụng Flatpak."
+    warn "Flatpak is unavailable; skipping Flatpak applications."
     return 0
   }
 
-  section "8. Cài ứng dụng từ Flathub"
+  section "8. Install applications from Flathub"
 
   local app
 
   for app in "${FLATPAK_APPS[@]}"; do
-    info "Kiểm tra $app..."
+    info "Checking $app..."
 
     if flatpak remote-info flathub "$app" >/dev/null 2>&1; then
       run flatpak install -y flathub "$app"
     else
-      warn "$app không tồn tại trên Flathub hiện tại — bỏ qua."
+      warn "$app is unavailable on Flathub; skipping."
     fi
   done
 }
 
 # ------------------------------------------------------------
-# Dọn hệ thống
+# System cleanup
 # ------------------------------------------------------------
 
 clean_system() {
   [[ "$CLEAN_SYSTEM" == true ]] || return 0
 
-  section "9. Dọn hệ thống an toàn"
+  section "9. Clean the system"
 
   run sudo apt-get autoremove --purge -y
   run sudo apt-get autoclean
@@ -445,49 +445,49 @@ clean_system() {
   run rm -rf "$HOME/.local/share/Trash/info/"*
 
   run sudo journalctl --vacuum-time=7d
-  success "Đã dọn cache, gói thừa và log cũ."
+  success "Removed unused packages, caches, and old logs."
 }
 
 # ------------------------------------------------------------
-# Tổng kết
+# Summary
 # ------------------------------------------------------------
 
 summary() {
-  section "Hoàn tất"
+  section "Complete"
 
   cat <<EOF
-Đã chạy xong cấu hình Ubuntu.
+Ubuntu setup completed.
 
-Việc nên làm tiếp:
-  1. Reboot máy.
-  2. Mở fcitx5-configtool và thêm Unikey nếu chưa có.
-  3. Kiểm tra Firefox/Thunderbird trong danh sách ứng dụng.
-  4. Kiểm tra firmware bằng: fwupdmgr get-updates
+Next steps:
+  1. Reboot the system.
+  2. Open fcitx5-configtool and add Unikey if needed.
+  3. Check Firefox and Thunderbird in the application list.
+  4. Check firmware updates with: fwupdmgr get-updates
 
 Log:
   $LOG_FILE
 EOF
 
   if [[ "$DRY_RUN" == true ]]; then
-    warn "Đây là chế độ dry-run; chưa có thay đổi nào được áp dụng."
+    warn "Dry-run mode: no changes were applied."
   else
-    success "Nên reboot để hoàn tất thay đổi input method và desktop session."
+    success "Reboot to finish applying input-method and desktop changes."
   fi
 }
 
 main() {
   preflight
 
-  printf '\nScript sẽ thực hiện các nhóm sau:\n'
-  printf '  - Update hệ thống\n'
-  printf '  - Gỡ Snap: %s\n' "$REMOVE_SNAP"
+  printf '\nThe script will run these feature groups:\n'
+  printf '  - System update\n'
+  printf '  - Remove Snap: %s\n' "$REMOVE_SNAP"
   printf '  - Flatpak/Flathub: %s\n' "$INSTALL_FLATPAK"
   printf '  - GNOME Software: %s\n' "$INSTALL_GNOME_SOFTWARE"
   printf '  - Fcitx5 + Unikey: %s\n' "$INSTALL_FCITX5"
-  printf '  - Dọn hệ thống: %s\n\n' "$CLEAN_SYSTEM"
+  printf '  - System cleanup: %s\n\n' "$CLEAN_SYSTEM"
 
-  confirm "Bắt đầu?" || {
-    info "Đã hủy."
+  confirm "Start?" || {
+    info "Cancelled."
     exit 0
   }
 

@@ -1,180 +1,165 @@
 # Enhanced Flatpak Ubuntu
 
-Bộ script hậu cài đặt dành cho cộng đồng Ubuntu GNOME, tập trung thay thế Snap
-bằng Flatpak, thiết lập bộ gõ tiếng Việt và chuẩn bị một desktop gọn gàng hơn.
+A transparent post-install setup for Ubuntu GNOME. It replaces Snap with
+Flatpak, configures Vietnamese input through Fcitx5, installs common desktop
+tools, and performs conservative system cleanup.
 
 > [!WARNING]
-> `install.sh` sẽ gỡ toàn bộ ứng dụng Snap, `snapd` và dữ liệu Snap cục bộ.
-> Hãy đọc phần **Những thay đổi được thực hiện** và sao lưu dữ liệu quan trọng
-> trước khi chạy. Đây không phải script chính thức của Ubuntu, Canonical hay
-> Flathub.
+> `install.sh` removes every installed Snap, purges `snapd`, and deletes local
+> Snap data. Review [What changes](#what-changes) and back up important data
+> before running it. This is an independent community project and is not
+> affiliated with Ubuntu, Canonical, GNOME, or Flathub.
 
-## Mục lục
+## Features
 
-- [Tính năng](#tính-năng)
-- [Yêu cầu](#yêu-cầu)
-- [Cài đặt](#cài-đặt)
-- [Những thay đổi được thực hiện](#những-thay-đổi-được-thực-hiện)
-- [Khắc phục lỗi độ sáng](#khắc-phục-lỗi-độ-sáng)
-- [Khôi phục và xử lý sự cố](#khôi-phục-và-xử-lý-sự-cố)
-- [Đóng góp](#đóng-góp)
+- Updates installed APT packages.
+- Removes Snap and pins `snapd` to prevent automatic reinstallation.
+- Installs Flatpak, Flathub, and GNOME Software.
+- Installs Firefox and Thunderbird from Flathub when available.
+- Installs Fcitx5 with Unikey and configures autostart.
+- Installs common GNOME desktop utilities.
+- Cleans unused packages, caches, trash, and old journal entries.
+- Provides a `--dry-run` mode for reviewing commands first.
 
-## Tính năng
+## Requirements
 
-- Cập nhật các gói APT hiện có.
-- Gỡ Snap và pin `snapd` để hạn chế bị cài lại.
-- Cài Flatpak và thêm kho Flathub.
-- Cài GNOME Software cùng backend Flatpak và firmware.
-- Cài Firefox và Thunderbird từ Flathub khi ứng dụng tồn tại.
-- Cài Fcitx5, Unikey và cấu hình tự khởi động.
-- Cài một số công cụ desktop phổ biến.
-- Dọn gói thừa, cache, thùng rác và journal cũ.
-- Có chế độ xem trước thay đổi bằng `--dry-run`.
+- Ubuntu with GNOME and APT
+- An account with `sudo` access
+- A working Internet connection
+- A current backup, especially on an existing workstation
 
-## Yêu cầu
+Other distributions are not supported. The installer warns before continuing
+when it does not detect Ubuntu.
 
-- Ubuntu sử dụng GNOME và trình quản lý gói APT.
-- Tài khoản có quyền `sudo`.
-- Kết nối Internet ổn định.
-- Nên chạy trên bản cài mới hoặc sau khi đã sao lưu dữ liệu.
-
-Script được thiết kế cho Ubuntu. Khi chạy trên distro khác, script sẽ cảnh báo
-nhưng không thể bảo đảm tương thích.
-
-## Cài đặt
-
-Tải repository:
+## Installation
 
 ```bash
 git clone https://github.com/ngoctanz/ehanced-flatpak-ubuntu.git
 cd ehanced-flatpak-ubuntu
-```
-
-Nên xem trước các lệnh:
-
-```bash
 ./install.sh --dry-run
-```
-
-Chạy cài đặt:
-
-```bash
 ./install.sh
 ```
 
-Tự động xác nhận mọi câu hỏi:
+Use `./install.sh --yes` to accept all prompts. Do not run
+`sudo ./install.sh`; the script requests elevated access only for operations
+that need it.
 
-```bash
-./install.sh --yes
-```
-
-Không chạy `sudo ./install.sh`. Script sẽ tự yêu cầu `sudo` cho từng thao tác
-cần quyền quản trị.
-
-Log được lưu tại:
+Logs are stored as:
 
 ```text
 ~/ubuntu-post-install-YYYYMMDD-HHMMSS.log
 ```
 
-Sau khi hoàn tất, hãy reboot để áp dụng đầy đủ thay đổi desktop và bộ gõ.
+Reboot after completion to apply the desktop and input-method changes.
 
-## Những thay đổi được thực hiện
+## What changes
 
-### APT và Snap
+### APT and Snap
 
-- Chạy `apt-get update` và `apt-get full-upgrade`.
-- Gỡ các Snap đang cài, purge `snapd` và xóa dữ liệu tại:
-  `/snap`, `/var/snap`, `/var/lib/snapd`, `/var/cache/snapd` và `~/snap`.
-- Tạo `/etc/apt/preferences.d/nosnap.pref` với Pin-Priority `-10`.
+- Runs `apt-get update` and `apt-get full-upgrade`.
+- Removes installed Snaps, purges `snapd`, and deletes `/snap`, `/var/snap`,
+  `/var/lib/snapd`, `/var/cache/snapd`, and `~/snap`.
+- Creates `/etc/apt/preferences.d/nosnap.pref` with Pin-Priority `-10`.
 
-### Flatpak và ứng dụng
+To restore Snap, remove or adjust that pin file, then run:
 
-- Cài Flatpak và thêm remote Flathub cho hệ thống.
-- Cài GNOME Software cùng các plugin khả dụng.
-- Thử cài các Flatpak sau; ứng dụng không tồn tại sẽ được bỏ qua:
-  `org.mozilla.firefox` và `org.mozilla.thunderbird_esr`.
+```bash
+sudo apt install snapd
+```
 
-### Bộ gõ tiếng Việt
+### Flatpak and desktop applications
 
-- Cài Fcitx5 và `fcitx5-unikey`.
-- Gỡ riêng `ibus-unikey`, không gỡ IBus core của GNOME.
-- Tạo launcher Fcitx5 trong `~/.config/autostart`.
+- Installs Flatpak and adds the system-wide Flathub remote.
+- Installs GNOME Software and the available Flatpak/firmware plugins.
+- Attempts to install `org.mozilla.firefox` and
+  `org.mozilla.thunderbird_esr`; unavailable applications are skipped.
 
-Sau khi reboot, mở `fcitx5-configtool` và thêm Unikey nếu chưa xuất hiện.
+### Vietnamese input
 
-### Dọn hệ thống
+- Installs Fcitx5 and `fcitx5-unikey`.
+- Removes only `ibus-unikey`, preserving the IBus core required by GNOME.
+- Adds Fcitx5 to the current user's autostart directory.
 
-- Chạy `apt-get autoremove --purge`, `autoclean` và `clean`.
-- Gỡ Flatpak runtime không còn được sử dụng.
-- Xóa thumbnail cache, cache IBus, thùng rác người dùng.
-- Chỉ giữ journal trong 7 ngày gần nhất.
+After rebooting, open `fcitx5-configtool` and add Unikey if it is not already
+listed.
 
-Các nhóm chức năng có thể bật hoặc tắt bằng các biến `true`/`false` ở đầu
-`install.sh`.
+### Cleanup
 
-## Khắc phục lỗi độ sáng
+- Runs APT `autoremove --purge`, `autoclean`, and `clean`.
+- Removes unused Flatpak runtimes.
+- Clears thumbnail and IBus caches plus the current user's trash.
+- Retains seven days of systemd journal entries.
 
-Một số laptop không chọn đúng giao diện ACPI backlight sau khi cài Linux.
-Chỉ áp dụng workaround này khi thanh điều chỉnh độ sáng không hoạt động.
+Feature groups can be enabled or disabled using the Boolean settings near the
+top of `install.sh`.
 
-### 1. Thử tạm thời
+## Backlight troubleshooting
 
-Tại menu GRUB:
+Some laptops select the wrong ACPI backlight interface. Only apply this
+workaround when the brightness control is present but does not work.
 
-1. Chọn Ubuntu và nhấn `e`.
-2. Tìm dòng bắt đầu bằng `linux`.
-3. Thêm `acpi_backlight=native` vào cuối dòng.
-4. Nhấn `Ctrl+X` hoặc `F10` để boot.
+Test it for one boot before making it permanent:
 
-Thay đổi tạm thời chỉ có hiệu lực cho lần boot đó. Nếu độ sáng hoạt động, áp
-dụng lâu dài:
+1. Select Ubuntu in GRUB and press `e`.
+2. Find the line beginning with `linux`.
+3. Append `acpi_backlight=native`.
+4. Press `Ctrl+X` or `F10` to boot.
+
+If brightness control now works:
 
 ```bash
 ./fix-backlight.sh
 sudo reboot
 ```
 
-Script tạo file riêng
-`/etc/default/grub.d/99-enhanced-gnome-backlight.cfg` rồi chạy `update-grub`.
-Ubuntu dùng cơ chế này thay cho lệnh `grubby` thường gặp trên Fedora.
+The script creates
+`/etc/default/grub.d/99-enhanced-gnome-backlight.cfg` and runs `update-grub`.
+Ubuntu uses this GRUB configuration flow instead of Fedora's common `grubby`
+command.
 
-Nếu không hiệu quả, gỡ thay đổi:
+Rollback:
 
 ```bash
 ./fix-backlight.sh --remove
 sudo reboot
 ```
 
-`acpi_backlight=native` không giải quyết mọi lỗi độ sáng. Nguyên nhân cũng có
-thể đến từ driver GPU, firmware hoặc cách kernel hỗ trợ model laptop cụ thể.
+After a kernel update, verify that the parameter was applied:
 
-## Khôi phục và xử lý sự cố
+```bash
+cat /proc/cmdline
+```
 
-- Xem log mới nhất: `ls -t ~/ubuntu-post-install-*.log | head -1`.
-- Cài lại Snap nếu cần: `sudo apt install snapd`. Trước đó hãy xóa hoặc chỉnh
-  `/etc/apt/preferences.d/nosnap.pref`.
-- Flatpak không hiển thị ngay trong GNOME Software: đăng xuất hoặc reboot.
-- Fcitx5 chưa hoạt động: chạy `fcitx5-configtool`, kiểm tra Unikey rồi đăng
-  nhập lại phiên GNOME.
-- Script dừng giữa chừng: đọc lỗi trong log, xử lý nguyên nhân rồi chạy lại.
-  Các bước chính được viết để có thể chạy lại an toàn.
+If it is missing, inspect the drop-in file, run `sudo update-grub`, and reboot.
+This parameter is not a universal fix; GPU drivers, firmware, and model-specific
+kernel support may be responsible instead. See
+[issue #1](https://github.com/ngoctanz/ehanced-flatpak-ubuntu/issues/1) and
+[issue #2](https://github.com/ngoctanz/ehanced-flatpak-ubuntu/issues/2).
 
-## Đóng góp
+## Troubleshooting
 
-Issue và pull request đều được chào đón. Khi báo lỗi, vui lòng cung cấp:
+- Find the latest log with `ls -t ~/ubuntu-post-install-*.log | head -1`.
+- If Flatpak apps do not appear in GNOME Software, sign out or reboot.
+- If Fcitx5 is inactive, check Unikey in `fcitx5-configtool`, then sign in
+  again.
+- If installation stops, fix the reported error and rerun it. Major steps are
+  designed to be safely repeatable.
 
-- phiên bản Ubuntu và GNOME;
-- model máy và GPU nếu lỗi liên quan phần cứng;
-- lệnh đã chạy;
-- phần log liên quan, đã xóa thông tin nhạy cảm.
+## Contributing
 
-Hãy chạy kiểm tra cú pháp trước khi gửi pull request:
+Issues and pull requests are welcome. Bug reports should include:
+
+- Ubuntu, GNOME, and kernel versions;
+- device model and GPU for hardware-related problems;
+- the command that was run;
+- relevant logs with sensitive information removed.
+
+Run the syntax check before submitting a pull request:
 
 ```bash
 bash -n install.sh fix-backlight.sh
 ```
 
-## Giấy phép
+## License
 
-Dự án được phát hành theo [MIT License](LICENSE).
+Released under the [MIT License](LICENSE).

@@ -4,20 +4,20 @@ set -Eeuo pipefail
 readonly CONFIG=/etc/default/grub.d/99-enhanced-gnome-backlight.cfg
 
 [[ $EUID -ne 0 ]] || {
-  echo "Không chạy script bằng sudo; hãy dùng: ./fix-backlight.sh" >&2
+  echo "Do not run this script with sudo; use: ./fix-backlight.sh" >&2
   exit 1
 }
 command -v update-grub >/dev/null || {
-  echo "Không tìm thấy update-grub. Script này chỉ hỗ trợ Ubuntu dùng GRUB." >&2
+  echo "update-grub was not found. This script supports Ubuntu systems using GRUB." >&2
   exit 1
 }
 
 if [[ ${1:-} == --remove ]]; then
   sudo rm -f "$CONFIG"
   sudo update-grub
-  echo "Đã gỡ acpi_backlight=native. Hãy reboot."
+  echo "Removed acpi_backlight=native. Reboot to apply the change."
 elif (($#)); then
-  echo "Cách dùng: $0 [--remove]" >&2
+  echo "Usage: $0 [--remove]" >&2
   exit 2
 else
   printf '%s\n' \
@@ -25,5 +25,5 @@ else
     'GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} acpi_backlight=native"' |
     sudo tee "$CONFIG" >/dev/null
   sudo update-grub
-  echo "Đã thêm acpi_backlight=native. Hãy reboot."
+  echo "Added acpi_backlight=native. Reboot to apply the change."
 fi
