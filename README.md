@@ -136,28 +136,22 @@ kernel support may be responsible instead. See
 [issue #1](https://github.com/ngoctanz/ehanced-flatpak-ubuntu/issues/1) and
 [issue #2](https://github.com/ngoctanz/ehanced-flatpak-ubuntu/issues/2).
 
-## Bluetooth disconnects after login
+## Bluetooth audio disconnects after login
 
-On some GDM systems, the login screen's WirePlumber session connects to a
-Bluetooth headset before login. GDM then releases its Bluetooth audio endpoints
-while starting the user's session, leaving the headset disconnected.
-
-Apply the workaround:
+If WirePlumber switches a headset to a broken Hands-Free profile after login,
+keep Bluetooth audio on A2DP:
 
 ```bash
-./fix-bluetooth-login.sh
-sudo reboot
+./fix-bluetooth-audio.sh
 ```
 
-This disables Bluetooth audio only for the GDM login screen. Bluetooth remains
-available after login. See
+This favors stable playback and disables the headset's Bluetooth microphone. See
 [issue #3](https://github.com/ngoctanz/ehanced-flatpak-ubuntu/issues/3).
 
 Rollback:
 
 ```bash
-./fix-bluetooth-login.sh --remove
-sudo reboot
+./fix-bluetooth-audio.sh --remove
 ```
 
 ## Troubleshooting
@@ -181,7 +175,7 @@ Issues and pull requests are welcome. Bug reports should include:
 Run the syntax check before submitting a pull request:
 
 ```bash
-bash -n install.sh fix-backlight.sh fix-bluetooth-login.sh
+bash -n install.sh fix-backlight.sh fix-bluetooth-audio.sh
 ```
 
 ## License
