@@ -136,24 +136,6 @@ kernel support may be responsible instead. See
 [issue #1](https://github.com/ngoctanz/ehanced-flatpak-ubuntu/issues/1) and
 [issue #2](https://github.com/ngoctanz/ehanced-flatpak-ubuntu/issues/2).
 
-## Bluetooth audio disconnects after login
-
-If WirePlumber switches a headset to a broken Hands-Free profile after login,
-keep Bluetooth audio on A2DP:
-
-```bash
-./fix-bluetooth-audio.sh
-```
-
-This favors stable playback and disables the headset's Bluetooth microphone. See
-[issue #3](https://github.com/ngoctanz/ehanced-flatpak-ubuntu/issues/3).
-
-Rollback:
-
-```bash
-./fix-bluetooth-audio.sh --remove
-```
-
 ## Troubleshooting
 
 - Find the latest log with `ls -t ~/ubuntu-post-install-*.log | head -1`.
@@ -175,7 +157,7 @@ Issues and pull requests are welcome. Bug reports should include:
 Run the syntax check before submitting a pull request:
 
 ```bash
-bash -n install.sh fix-backlight.sh fix-bluetooth-audio.sh
+bash -n install.sh fix-backlight.sh
 ```
 
 ## License
