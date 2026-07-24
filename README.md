@@ -175,5 +175,6 @@ Hãy chạy kiểm tra cú pháp trước khi gửi pull request:
 bash -n install.sh fix-backlight.sh
 ```
 
-Repository hiện chưa công bố giấy phép mã nguồn. Việc xem và đóng góp không
-đồng nghĩa với quyền phân phối lại cho đến khi maintainer chọn license.
+## Giấy phép
+
+Dự án được phát hành theo [MIT License](LICENSE).
